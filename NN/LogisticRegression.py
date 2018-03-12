@@ -1,5 +1,4 @@
 # import the necessary packages
-import imutils
 from sklearn.feature_extraction import image as imageLib
 import numpy as np
 import argparse
@@ -7,7 +6,7 @@ import time
 import os
 import cv2
 import cntk as C
-from helper import pyramid, sliding_window, slideWithPyramid, slide
+from helper import sliding_window, slide
 import MyDeserializer
 
 class LogisticRegression():
@@ -159,7 +158,7 @@ class LogisticRegression():
         # plotdata["avgerror"] = moving_average(plotdata["error"])
 
         # Plot the training loss and the training error
-        import matplotlib.pyplot as plt
+        # import matplotlib.pyplot as plt
         #
         # plt.figure(1)
         # plt.subplot(211)
