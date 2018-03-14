@@ -17,3 +17,23 @@ def filterImagesWithNoMask(directory, destination):
             cv2.imwrite(destination + name.replace(".tif", "") + "_mask.tif", mask)
 
     return result
+
+
+def separateImageAndMask(directory, destination):
+    "This separates patient images into separate folders and removes masks. A preprocess step before making motion vectors"
+
+    for name in os.listdir(directory):
+        if("mask" in name):
+            continue
+
+        filename = directory + name
+
+        patientDirectory = destination + name.split("_")[0] + "\\"
+
+        if not os.path.exists(patientDirectory):
+            os.makedirs(patientDirectory)
+
+        image = cv2.imread(directory + name)
+
+        cv2.imwrite(patientDirectory + name, image)
+
