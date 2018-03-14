@@ -1,30 +1,12 @@
 # README #
 
-This README would normally document whatever steps are necessary to get your application up and running.
-
 ### What is this repository for? ###
 
-* Quick summary
-This repository is meant for my diploma project at Faculty of Informatics and Information Technologies
-* Version
-* [Learn Markdown](https://bitbucket.org/tutorials/markdowndemo)
+* This repository is meant for my diploma thesis at Faculty of Informatics and Information Technologies
+* Version - N.A.
 
-### How do I get set up? ###
+### Contact ###
 
-* Summary of set up
-* Configuration
-* Dependencies
-* Database configuration
-* How to run tests
-* Deployment instructions
-
-### Contribution guidelines ###
-
-* Writing tests
-* Code review
-* Other guidelines
-
-### Who do I talk to? ###
-
-* Repo owner or admin
-* Other community or team contact
+* Owner: Bc. Tomáš Mňačko
+* * email: tomas.mnacko@gmail.com 
+* Supervisor: Ing. Martin Tamajka
