@@ -6,9 +6,9 @@ from NN import LogisticRegression as lr
 import numpy as np
 
 desktopDirectory = "D:/DP/Data/train/train/"
-notebookDirectory = "C:/DP/train/"
+notebookDirectory = "C:/DP/Data/train/"
 
-directory = desktopDirectory
+directory = notebookDirectory
 dest = "D:/DP/Data/Preprocess_1/train/"
 # len = len(os.listdir(directory))
 
@@ -27,20 +27,32 @@ num_output_classes = 2
 import ComputerVisionAssignments.motionAndVideo as motion
 # motion.detectBasicMotion("D:\\DP\\Data\\Preprocess\\motion\\1\\1.avi", 350)
 # motion.denseOpticalFlow("D:\\DP\\Data\\Preprocess\\motion\\1\\1.avi")
-motion.lucasKanadeOpticalFlow("D:\\DP\\Data\\Preprocess\\motion\\1\\1.avi")
+# motion.lucasKanadeOpticalFlow("D:\\DP\\Data\\Preprocess\\motion\\1\\1.avi")
 
 def createVideosFromImages():
     import fileProcessing, ComputerVisionAssignments.motionAndVideo as motion
-    destination = "D:/DP/Data/Preprocess/motion/"
+    destination = "C:/DP/Data/Preprocess/motion/"
 
     fileProcessing.separateImageAndMask(directory, destination)
-    tempImage = cv2.imread("D:\\DP\\Data\\Preprocess\\motion\\1\\1_1.tif")
+    tempImage = cv2.imread("C:\\DP\\Data\\Preprocess\\motion\\1\\1_1.tif")
     for patientDirectory in os.listdir(destination):
         # for name in os.listdir(patientDirectory):
         if ".avi" in patientDirectory:
             continue
         directoryName = destination + patientDirectory
-        motion.makeVideo(patientDirectory, directoryName, tempImage.shape[0], tempImage.shape[1])
+        # tempImage.shape[0], tempImage.shape[1]
+        motion.createVideo(patientDirectory, directoryName)
+
+video = "C:/DP/Data/Preprocess/motion/1/1.avi"
+# motion.lucasKanadeOpticalFlow(video=video)
+
+
+
+
+import fileProcessing
+
+destination = "C:/DP/Data/Preprocess/motion/"
+motion.showImageAndMask(destination)
 
 # showMotionVectors()
 

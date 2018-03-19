@@ -1,7 +1,7 @@
 import cv2, os, numpy as np
 
 
-def makeVideo(videoName, directory, imageWidth, imageHeight):
+def createVideosFromDirectory(videoName, directory, imageWidth, imageHeight):
 
     videoPath = directory + "/" + videoName + ".avi"
 
@@ -23,6 +23,21 @@ def makeVideo(videoName, directory, imageWidth, imageHeight):
 
     cv2.destroyAllWindows()
     video.release()
+
+def createVideo(frames, videoname):
+
+    videoPath = videoname
+
+    height = frames[0].shape[0]
+    width = frames[0].shape[1]
+    print(width, height)
+    video = cv2.VideoWriter(filename=videoPath, fourcc=cv2.VideoWriter_fourcc(*"MJPG"), fps=7, frameSize=(width, height))
+
+    for frame in frames:
+        video.write(frame)
+    cv2.destroyAllWindows()
+    video.release()
+
 
 def lucasKanadeOpticalFlow(video):
     import numpy as np
@@ -46,13 +61,24 @@ def lucasKanadeOpticalFlow(video):
     old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
     p0 = cv.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
     # Create a mask image for drawing purposes
-    mask = np.zeros_like(old_frame)
+    drawingMask = np.zeros_like(old_frame)
 
+    # retval, mask = cv.threshold(old_gray, -1, 255, cv.THRESH_OTSU)
+    # mask = cv.medianBlur(mask, 11)
+    # old_gray = cv.bitwise_and(old_gray, old_gray, mask=mask)
+    # cv.imshow("Mask", mask)
+    # cv.imshow("MaskBlurred", mask2)
+    # cv.waitKey(0)
     counter = 1
     print(int(cap.get(cv.CAP_PROP_FRAME_COUNT)))
     while counter < int(cap.get(cv.CAP_PROP_FRAME_COUNT)):
         ret, frame = cap.read()
         frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+
+        retval, mask = cv.threshold(frame_gray, -1, 255, cv.THRESH_OTSU)
+        mask = cv.medianBlur(mask, 11)
+
+        # frame_gray = cv.bitwise_and(frame_gray, frame_gray, mask=mask)
         # calculate optical flow
         p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
         # Select good points
@@ -65,9 +91,11 @@ def lucasKanadeOpticalFlow(video):
         for i, (new, old) in enumerate(zip(good_new, good_old)):
             a, b = new.ravel()
             c, d = old.ravel()
-            mask = cv.line(mask, (a, b), (c, d), color[i].tolist(), 2)
+            drawingMask = cv.line(drawingMask, (a, b), (c, d), color[i].tolist(), 2)
             frame = cv.circle(frame, (a, b), 5, color[i].tolist(), -1)
-        img = cv.add(frame, mask)
+        print("Shapes: ", drawingMask.shape, frame.shape, "\nSizes: ", drawingMask.size, frame.size)
+
+        img = cv.add(frame, drawingMask)
         cv.imshow('frame', img)
         k = cv.waitKey(30) & 0xff
         if k == 27:
@@ -198,3 +226,43 @@ def denseOpticalFlow(video):
     cv.waitKey(0)
     cap.release()
     cv.destroyAllWindows()
+
+
+def showImageAndMask(directory):
+    import time
+
+    for dirName in os.listdir(directory):
+
+        patientDirectory = directory + dirName
+        frames = []
+        for name in os.listdir(patientDirectory):
+            if "mask" in name or ".avi" in name:
+                continue
+            image = cv2.imread(patientDirectory  + "/" + name)
+            multichannelMask = cv2.imread(patientDirectory + "/" + name.replace(".tif", "") + "_mask.tif")
+            mask = cv2.imread(patientDirectory + "/" + name.replace(".tif", "") + "_mask.tif", cv2.IMREAD_GRAYSCALE)
+
+            # cv2.imshow("Image", image)
+            # cv2.imshow("Mask", mask)
+            imageWithContours = image.copy()
+
+            im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            cv2.drawContours(imageWithContours, contours, -1, (0, 255, 0), 1)
+
+            # cv2.imshow("With contours", imageWithContours)
+
+            # cv2.moveWindow("Image", 20, 20)
+            # cv2.moveWindow("Mask", 600, 20)
+            # cv2.moveWindow("With contours", 20, 440)
+            emptyImg = np.zeros((420, 580, 3), np.uint8)
+            vis2 = np.concatenate((imageWithContours, emptyImg), axis=1)
+
+            vis = np.concatenate((image, multichannelMask), axis=1)
+            vis = np.concatenate((vis, vis2), axis=0)
+            frames.append(vis)
+            cv2.imshow("Combined", vis)
+
+            cv2.waitKey(1)
+            time.sleep(0.25)
+        createVideo(frames, patientDirectory + "/" + dirName + "_withContours.avi")
+        cv2.waitKey(0)

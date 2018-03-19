@@ -43,7 +43,7 @@ def start(directory):
 
     cv2.imshow("Before", img)
     cv2.imshow("After", img2)
-    cv2.imshow("Guided", img3)
+    cv2.imshow("Denoised", img3)
     cv2.waitKey(0)
 
     # cv2.imshow("Lee filter",lee_filter(img, 20))
