@@ -2,13 +2,12 @@
 import os
 import cv2
 
-from NN import LogisticRegression as lr
 import numpy as np
 
 desktopDirectory = "D:/DP/Data/train/train/"
 notebookDirectory = "C:/DP/Data/train/"
 
-directory = notebookDirectory
+directory = desktopDirectory
 dest = "D:/DP/Data/Preprocess_1/train/"
 # len = len(os.listdir(directory))
 
@@ -30,31 +29,34 @@ import ComputerVisionAssignments.motionAndVideo as motion
 # motion.lucasKanadeOpticalFlow("D:\\DP\\Data\\Preprocess\\motion\\1\\1.avi")
 
 def createVideosFromImages():
-    import fileProcessing, ComputerVisionAssignments.motionAndVideo as motion
-    destination = "C:/DP/Data/Preprocess/motion/"
+    import ComputerVisionAssignments.motionAndVideo as motion
+    import ComputerVisionAssignments.ImageSort as sort
 
-    fileProcessing.separateImageAndMask(directory, destination)
-    tempImage = cv2.imread("C:\\DP\\Data\\Preprocess\\motion\\1\\1_1.tif")
     for patientDirectory in os.listdir(destination):
-        # for name in os.listdir(patientDirectory):
-        if ".avi" in patientDirectory:
-            continue
-        directoryName = destination + patientDirectory
-        # tempImage.shape[0], tempImage.shape[1]
-        motion.createVideo(patientDirectory, directoryName)
+        sequence = sort.getPatientSequence(patientDirectory)
+        # motion.createVideoFromListWithMask(sequence, "D:/DP/Data/Preprocess/motion/10/10_sequence.avi")
+        videopath = destination + patientDirectory + "\\" + patientDirectory + "_sequence.avi"
+        motion.createVideoFromList(sequence, videopath)
+        print("Video ", patientDirectory, " done.")
 
-video = "C:/DP/Data/Preprocess/motion/1/1.avi"
+video = "D:/DP/Data/Preprocess/motion/1/1_sequence.avi"
 # motion.lucasKanadeOpticalFlow(video=video)
 
+import ComputerVisionAssignments.superpixel as sp
 
+sp.showSuperpixelImages(cv2.imread("D:/DP/Data/Preprocess/motion/1/1_1.tif"), 150, mask=cv2.imread("D:/DP/Data/Preprocess/motion/1/1_1_mask.tif"))
 
 
 import fileProcessing
 
-destination = "C:/DP/Data/Preprocess/motion/"
-motion.showImageAndMask(destination)
+destination = "D:\\DP\\Data\\Preprocess\\motion\\"
+# motion.showImageAndMask(destination)
+# fileProcessing.separateImageAndMask("D:\\DP\\Data\\train\\train\\", destination)
 
 # showMotionVectors()
+
+
+
 
 
 # LR = lr.LogisticRegression(input_dim, num_output_classes)
