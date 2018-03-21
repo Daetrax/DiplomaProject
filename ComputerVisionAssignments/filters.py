@@ -2,6 +2,26 @@ import cv2
 
 from scipy.ndimage.filters import uniform_filter
 from scipy.ndimage.measurements import variance
+import skimage.restoration as resto
+import numpy as np
+import scipy.signal as sig
+
+def wiener_filter_scipy(image):
+    return sig.wiener(image).copy()
+
+def wiener_filter_skimage(image):
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    psf = np.ones((5, 5)) / 25
+    return resto.unsupervised_wiener(image, psf).copy()
+
+def median_filter(image, ksize = 5):
+    return cv2.medianBlur(image, ksize=ksize).copy()
+
+def gauss_filter(image, ksize = (5, 5), sigmaX = 0):
+    return cv2.GaussianBlur(image, ksize=ksize, sigmaX=sigmaX).copy()
+
+def bilateral_filter(image, d = 5, sigmaColor = 75, sigmaSpace = 75):
+    return cv2.bilateralFilter(image, d=d, sigmaColor=sigmaColor, sigmaSpace=sigmaSpace).copy()
 
 def lee_filter(img, size):
     img_mean = uniform_filter(img, (size, size))

@@ -38,6 +38,54 @@ def createVideo(frames, videoname):
     cv2.destroyAllWindows()
     video.release()
 
+def createVideoFromList(frames, videoname):
+
+    videoPath = videoname
+
+    tempImage = cv2.imread(frames[0])
+    height = tempImage.shape[0]
+    width = tempImage.shape[1]
+
+    print(width, height)
+    video = cv2.VideoWriter(filename=videoPath, fourcc=cv2.VideoWriter_fourcc(*"MJPG"), fps=7, frameSize=(width, height))
+
+    for framename in frames:
+        frame = cv2.imread(framename)
+        video.write(frame)
+    cv2.destroyAllWindows()
+    video.release()
+
+def createVideoFromListWithMask(frames, videoname):
+
+    videoPath = videoname
+
+    tempImage = cv2.imread(frames[0])
+    height = tempImage.shape[0]
+    width = tempImage.shape[1]
+
+    print(width, height)
+    video = cv2.VideoWriter(filename=videoPath, fourcc=cv2.VideoWriter_fourcc(*"MJPG"), fps=7, frameSize=(width*2, height*2))
+
+
+
+    for framename in frames:
+        frame = cv2.imread(framename)
+
+        imageWithContours = frame.copy()
+
+        multichannelMask = cv2.imread(framename.replace(".tif", "_mask.tif"))
+        mask = cv2.imread(framename.replace(".tif", "_mask.tif"), cv2.IMREAD_GRAYSCALE)
+        im2, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        cv2.drawContours(imageWithContours, contours, -1, (0, 255, 0), 1)
+
+        emptyImg = np.zeros((420, 580, 3), np.uint8)
+        combined2 = np.concatenate((imageWithContours, emptyImg), axis=1)
+
+        combined = np.concatenate((frame, multichannelMask), axis=1)
+        combined = np.concatenate((combined, combined2), axis=0)
+        video.write(combined)
+    cv2.destroyAllWindows()
+    video.release()
 
 def lucasKanadeOpticalFlow(video):
     import numpy as np
