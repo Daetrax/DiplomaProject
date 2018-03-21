@@ -16,3 +16,6 @@ __pycache__/fileProcessing.cpython-36.pyc
 .idea/workspace.xml
 .idea/.name
 ComputerVisionAssignments/__pycache__/__init__.cpython-36.pyc
+ComputerVisionAssignments/__pycache__/superpixel.cpython-36.pyc
+ComputerVisionAssignments/__pycache__/filters.cpython-36.pyc
+ComputerVisionAssignments/__pycache__/ImageSort.cpython-36.pyc
