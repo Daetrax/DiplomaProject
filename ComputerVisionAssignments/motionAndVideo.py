@@ -87,77 +87,147 @@ def createVideoFromListWithMask(frames, videoname):
     cv2.destroyAllWindows()
     video.release()
 
-def lucasKanadeOpticalFlow(video):
+
+def getFramesDifference(old_frame, new_frame, p0, frame, win_name="Optical flow"):
+    lk_params = dict(winSize=(15, 15),
+                     maxLevel=2,
+                     criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+
+    p1, st, err = cv2.calcOpticalFlowPyrLK(old_frame, new_frame, p0, None, **lk_params)
+
+    # Select good points
+    good_new = p1
+    good_old = p0
+    # draw the tracks
+    mask = np.zeros_like(frame)
+
+    # frame = new_frame.copy()
+    for i, (new, old) in enumerate(zip(good_new, good_old)):
+        a, b = new.ravel()
+        c, d = old.ravel()
+        mask = cv2.arrowedLine(mask, (c, d), (a, b), [0, 255, 255], thickness=2, tipLength=0.3)
+        frame = cv2.circle(frame, (a, b), 3, [0, 255, 255], -1)
+    img = cv2.add(frame, mask)
+    # cv2.imshow(win_name, img)
+    # k = cv2.waitKey(30) & 0xff
+    return p1, st, err, img
+
+
+def switch(filtermode, image):
+    import ComputerVisionAssignments.filters as f
+    imagecopy = image.copy()
+    return {
+        'gauss': f.gauss_filter(imagecopy),
+        # 'wiener': f.wiener_filter_skimage(imagecopy),
+        'bilateral': f.bilateral_filter(imagecopy),
+        'median': f.median_filter(imagecopy)
+    }[filtermode]
+
+def lucasKanadeOpticalFlowCompare(video, filter=None):
+    global old_filtered
     import numpy as np
-    import cv2 as cv
-    import time
-    # cap = cv.VideoCapture('slow.flv')
-    cap = cv.VideoCapture(video)
+    import cv2, time
+    cap = cv2.VideoCapture(video)
     # params for ShiTomasi corner detection
-    feature_params = dict(maxCorners=200,
-                          qualityLevel=0.3,
+    feature_params = dict(maxCorners=150,
+                          qualityLevel=0.1,
                           minDistance=7,
                           blockSize=7)
     # Parameters for lucas kanade optical flow
     lk_params = dict(winSize=(15, 15),
                      maxLevel=2,
-                     criteria=(cv.TERM_CRITERIA_EPS | cv.TERM_CRITERIA_COUNT, 10, 0.03))
+                     criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
     # Create some random colors
     color = np.random.randint(0, 255, (100, 3))
     # Take first frame and find corners in it
     ret, old_frame = cap.read()
-    old_gray = cv.cvtColor(old_frame, cv.COLOR_BGR2GRAY)
-    p0 = cv.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
+
+    old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
+    p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
+
+    if filter is not None:
+        old_filtered = switch(filter, old_gray)
+        p0_filtered = cv2.goodFeaturesToTrack(old_filtered, mask=None, **feature_params)
     # Create a mask image for drawing purposes
-    drawingMask = np.zeros_like(old_frame)
-
-    # retval, mask = cv.threshold(old_gray, -1, 255, cv.THRESH_OTSU)
-    # mask = cv.medianBlur(mask, 11)
-    # old_gray = cv.bitwise_and(old_gray, old_gray, mask=mask)
-    # cv.imshow("Mask", mask)
-    # cv.imshow("MaskBlurred", mask2)
-    # cv.waitKey(0)
-    counter = 1
-    print(int(cap.get(cv.CAP_PROP_FRAME_COUNT)))
-    while counter < int(cap.get(cv.CAP_PROP_FRAME_COUNT)):
+    mask = np.zeros_like(old_frame)
+    counter = 0
+    while counter < int(cap.get(cv2.CAP_PROP_FRAME_COUNT)):
         ret, frame = cap.read()
-        frame_gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+        frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        retval, mask = cv.threshold(frame_gray, -1, 255, cv.THRESH_OTSU)
-        mask = cv.medianBlur(mask, 11)
-
-        # frame_gray = cv.bitwise_and(frame_gray, frame_gray, mask=mask)
-        # calculate optical flow
-        p1, st, err = cv.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
-        # Select good points
-        print(counter)
-        counter += 1
-
-        good_new = p1[st == 1]
-        good_old = p0[st == 1]
-        # draw the tracks
-        for i, (new, old) in enumerate(zip(good_new, good_old)):
-            a, b = new.ravel()
-            c, d = old.ravel()
-            drawingMask = cv.line(drawingMask, (a, b), (c, d), color[i].tolist(), 2)
-            frame = cv.circle(frame, (a, b), 5, color[i].tolist(), -1)
-        print("Shapes: ", drawingMask.shape, frame.shape, "\nSizes: ", drawingMask.size, frame.size)
-
-        img = cv.add(frame, drawingMask)
-        cv.imshow('frame', img)
-        k = cv.waitKey(30) & 0xff
-        if k == 27:
-            break
         # Now update the previous frame and previous points
-        # If no movement was detected, copy previous points .
-        if good_new.size == 0 or good_old.size == 0:
-            continue
+        p1, st, err, diff_img = getFramesDifference(old_gray, frame_gray, p0, frame, win_name="Base")
+
+        if filter is not None:
+            framecopy = frame.copy()
+            frame_filtered = switch(filter, frame_gray)
+            p1_filtered, st_filtered, err_filtered, diff_filtered = \
+                getFramesDifference(old_filtered, frame_filtered, p0_filtered, framecopy, win_name="Filtered")
+
+        good_new = p1
         old_gray = frame_gray.copy()
+
+        if filter is not None:
+            good_new_filtered = p1_filtered
+            old_filtered = frame_filtered.copy()
+            p0_filtered = good_new_filtered.reshape(-1, 1, 2)
+            name = filter + " " + filter
+            cv2.imshow(name, diff_filtered)
+            cv2.moveWindow(name, diff_filtered.shape[1], 0)
+
+        cv2.imshow("base", diff_img)
         p0 = good_new.reshape(-1, 1, 2)
-        time.sleep(0.125)
-    cv.waitKey(0)
-    cv.destroyAllWindows()
+        cv2.waitKey(1)
+        time.sleep(0.325)
+    cv2.destroyAllWindows()
     cap.release()
+
+
+def lucasKanadeOpticalFlow(video, filter=None):
+    global old_filtered
+    import numpy as np
+    import cv2, time
+    cap = cv2.VideoCapture(video)
+    # params for ShiTomasi corner detection
+    feature_params = dict(maxCorners=150,
+                          qualityLevel=0.1,
+                          minDistance=7,
+                          blockSize=7)
+    # Parameters for lucas kanade optical flow
+    lk_params = dict(winSize=(15, 15),
+                     maxLevel=2,
+                     criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+    # Create some random colors
+    color = np.random.randint(0, 255, (100, 3))
+    # Take first frame and find corners in it
+    ret, old_frame = cap.read()
+
+    old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
+    old_gray = switch(filter, old_gray)
+
+    p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
+
+    # Create a mask image for drawing purposes
+    mask = np.zeros_like(old_frame)
+    counter = 0
+    while counter < int(cap.get(cv2.CAP_PROP_FRAME_COUNT)):
+        ret, frame = cap.read()
+        frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        frame_gray = switch(filter, frame_gray)
+
+        # Now update the previous frame and previous points
+        p1, st, err, diff_img = getFramesDifference(old_gray, frame_gray, p0, frame, win_name="Base")
+
+        good_new = p1
+        old_gray = frame_gray.copy()
+
+        cv2.imshow("base", diff_img)
+        p0 = good_new.reshape(-1, 1, 2)
+        cv2.waitKey(1)
+        time.sleep(0.325)
+    cv2.destroyAllWindows()
+    cap.release()
+
 
 def showMotionVectors(directory):
     import fileProcessing
@@ -245,6 +315,40 @@ def detectBasicMotion(video, min_area):
     camera.release()
     cv2.destroyAllWindows()
 
+def draw_flow(img, flow, step=16):
+    h, w = img.shape[:2]
+    y, x = np.mgrid[step/2:h:step, step/2:w:step].reshape(2,-1).astype(int)
+    fx, fy = flow[y,x].T
+    lines = np.vstack([x, y, x+fx, y+fy]).T.reshape(-1, 2, 2)
+    lines = np.int32(lines + 0.5)
+    # vis = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    vis = img
+    cv2.polylines(vis, lines, 0, (0, 255, 0))
+    for (x1, y1), (_x2, _y2) in lines:
+        cv2.circle(vis, (x1, y1), 1, (0, 255, 0), -1)
+    return vis
+
+def drawFlow(img, flow, step=16):
+    height, width = img.shape[:2]
+    y, x = np.mgrid[step / 2:height:step, step / 2:width:step].reshape(2, -1).astype(int)
+    fx, fy = flow[y, x].T
+
+    result = img.copy()
+
+    for i in range(0, height, step):
+        for j in range(0, width, step):
+            k, l = flow[i, j]
+            k = (i - k).astype('float32')
+            l = (j - l).astype('float32')
+            x, y = float(i), float(j)
+            cv2.arrowedLine(result, (x, y), (k, l), (0, 255, 255), 2)
+
+    # cv2.arrowedLine(result, (x, y), (x + fx, y + fy), (0, 255, 255), 2)
+    return result
+
+
+
+
 def denseOpticalFlow(video):
     import cv2 as cv
     import numpy as np
@@ -254,26 +358,29 @@ def denseOpticalFlow(video):
     prvs = cv.cvtColor(frame1, cv.COLOR_BGR2GRAY)
     hsv = np.zeros_like(frame1)
     hsv[..., 1] = 255
-    while (1):
+    counter = 1
+
+    video_writer = cv2.VideoWriter(filename="flow.avi", fourcc=cv2.VideoWriter_fourcc(*"MJPG"), fps=7, frameSize=(580, 420))
+
+    while counter < int(cap.get(cv2.CAP_PROP_FRAME_COUNT)):
         ret, frame2 = cap.read()
         next = cv.cvtColor(frame2, cv.COLOR_BGR2GRAY)
         flow = cv.calcOpticalFlowFarneback(prvs, next, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-        mag, ang = cv.cartToPolar(flow[..., 0], flow[..., 1])
-        hsv[..., 0] = ang * 180 / np.pi / 2
-        hsv[..., 2] = cv.normalize(mag, None, 0, 255, cv.NORM_MINMAX)
-        bgr = cv.cvtColor(hsv, cv.COLOR_HSV2BGR)
-        cv.imshow('frame2', bgr)
-        k = cv.waitKey(30) & 0xff
-        if k == 27:
-            break
-        elif k == ord('s'):
-            cv.imwrite('opticalfb.png', frame2)
-            cv.imwrite('opticalhsv.png', bgr)
+
+        counter += 1
+
+        flow_image = draw_flow(frame2, flow)
+        cv2.imshow("Flow", flow_image)
+
+        video_writer.write(flow_image)
+
+        cv.waitKey(1)
         prvs = next
-        time.sleep(0.125)
+        time.sleep(0.225)
     cv.waitKey(0)
     cap.release()
     cv.destroyAllWindows()
+    video_writer.release()
 
 
 def showImageAndMask(directory):
