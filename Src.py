@@ -28,22 +28,31 @@ import ComputerVisionAssignments.motionAndVideo as motion
 # motion.denseOpticalFlow("D:\\DP\\Data\\Preprocess\\motion\\1\\1.avi")
 # motion.lucasKanadeOpticalFlow("D:\\DP\\Data\\Preprocess\\motion\\1\\1.avi")
 
-def createVideosFromImages():
+def createVideosFromImages(destination):
     import ComputerVisionAssignments.motionAndVideo as motion
     import ComputerVisionAssignments.ImageSort as sort
 
-    for patientDirectory in os.listdir(destination):
+    for i, patientDirectory in enumerate(os.listdir(destination)):
         sequence = sort.getPatientSequence(patientDirectory)
         # motion.createVideoFromListWithMask(sequence, "D:/DP/Data/Preprocess/motion/10/10_sequence.avi")
         videopath = destination + patientDirectory + "\\" + patientDirectory + "_sequence.avi"
-        motion.createVideoFromList(sequence, videopath)
-        print("Video ", patientDirectory, " done.")
+        motion.createVideoFromListWithMask(sequence, videopath)
+        print("Video ", patientDirectory, " done.", "  progress: ", i, " / ", len(os.listdir(destination)))
 
 video = "D:/DP/Data/Preprocess/motion/1/1_sequence.avi"
 # motion.lucasKanadeOpticalFlow(video=video)
 
 import ComputerVisionAssignments.superpixel as sp
 
+cap = cv2.VideoCapture(video)
+ret, frame = cap.read()
+centroids = sp.getSuperpixelCentroids(frame, 100)
+cap.release()
+
+createVideosFromImages("D:/DP/Data/Preprocess/motion/")
+
+motion.lucasKanadeOpticalFlow(video=video, points_to_track=centroids, filter="gauss")
+motion.denseOpticalFlow(video)
 sp.showSuperpixelImages(cv2.imread("D:/DP/Data/Preprocess/motion/1/1_1.tif"), 150, mask=cv2.imread("D:/DP/Data/Preprocess/motion/1/1_1_mask.tif"))
 
 

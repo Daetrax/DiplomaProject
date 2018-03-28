@@ -120,7 +120,8 @@ def switch(filtermode, image):
         'gauss': f.gauss_filter(imagecopy),
         # 'wiener': f.wiener_filter_skimage(imagecopy),
         'bilateral': f.bilateral_filter(imagecopy),
-        'median': f.median_filter(imagecopy)
+        'median': f.median_filter(imagecopy),
+        None: image
     }[filtermode]
 
 def lucasKanadeOpticalFlowCompare(video, filter=None):
@@ -183,7 +184,7 @@ def lucasKanadeOpticalFlowCompare(video, filter=None):
     cap.release()
 
 
-def lucasKanadeOpticalFlow(video, filter=None):
+def lucasKanadeOpticalFlow(video, filter=None, points_to_track=None, delay=1.325):
     global old_filtered
     import numpy as np
     import cv2, time
@@ -197,15 +198,23 @@ def lucasKanadeOpticalFlow(video, filter=None):
     lk_params = dict(winSize=(15, 15),
                      maxLevel=2,
                      criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
-    # Create some random colors
-    color = np.random.randint(0, 255, (100, 3))
+
     # Take first frame and find corners in it
     ret, old_frame = cap.read()
 
     old_gray = cv2.cvtColor(old_frame, cv2.COLOR_BGR2GRAY)
     old_gray = switch(filter, old_gray)
 
-    p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
+    if points_to_track is not None:
+        p0 = np.asarray(points_to_track, dtype=np.float32)
+    else:
+        p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
+    sift = cv2.xfeatures2d.SIFT_create()
+    sift_points = sift.detect(old_gray, None)
+    temp = []
+    temp = [ (kp.pt[0], kp.pt[1]) for kp in sift_points ]
+    temp = np.asarray(temp, dtype=np.float32)
+    p0 = temp
 
     # Create a mask image for drawing purposes
     mask = np.zeros_like(old_frame)
@@ -224,7 +233,7 @@ def lucasKanadeOpticalFlow(video, filter=None):
         cv2.imshow("base", diff_img)
         p0 = good_new.reshape(-1, 1, 2)
         cv2.waitKey(1)
-        time.sleep(0.325)
+        time.sleep(delay)
     cv2.destroyAllWindows()
     cap.release()
 
@@ -315,18 +324,38 @@ def detectBasicMotion(video, min_area):
     camera.release()
     cv2.destroyAllWindows()
 
-def draw_flow(img, flow, step=16):
+
+def draw_flow(img, flow, threshold, step=16):
     h, w = img.shape[:2]
     y, x = np.mgrid[step/2:h:step, step/2:w:step].reshape(2,-1).astype(int)
     fx, fy = flow[y,x].T
-    lines = np.vstack([x, y, x+fx, y+fy]).T.reshape(-1, 2, 2)
+
+    ffx, ffy = [], []
+    for a, b in zip(fx, fy):
+        if (abs(a) > threshold or abs(b) > threshold):
+            ffx.append(a)
+            ffy.append(b)
+        else:
+            ffx.append(0)
+            ffy.append(0)
+    ffx = np.asarray(ffx, dtype=np.float32)
+    ffy = np.asarray(ffy, dtype=np.float32)
+    # print(ffx, "\n\n", ffy)
+    lines = np.vstack([x, y, x+ffx, y+ffy]).T.reshape(-1, 2, 2)
     lines = np.int32(lines + 0.5)
+
+    lines2 = np.vstack([x, y, x + fx, y + fy]).T.reshape(-1, 2, 2)
+    lines2 = np.int32(lines2 + 0.5)
     # vis = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    vis = img
-    cv2.polylines(vis, lines, 0, (0, 255, 0))
+    vis = img.copy()
+    vis2 = img.copy()
+    cv2.polylines(vis, lines, 0, (0, 255, 255))
+    cv2.polylines(vis2, lines2, 0, (0, 255, 255))
     for (x1, y1), (_x2, _y2) in lines:
-        cv2.circle(vis, (x1, y1), 1, (0, 255, 0), -1)
-    return vis
+        cv2.circle(vis, (x1, y1), 1, (0, 255, 255), -1)
+        cv2.circle(vis2, (x1, y1), 1, (0, 255, 255), -1)
+    return vis, vis2
+
 
 def drawFlow(img, flow, step=16):
     height, width = img.shape[:2]
@@ -369,8 +398,14 @@ def denseOpticalFlow(video):
 
         counter += 1
 
-        flow_image = draw_flow(frame2, flow)
+        flow_thr, flow_image = draw_flow(img=frame2, flow=flow, threshold=30)
         cv2.imshow("Flow", flow_image)
+        cv2.imshow("Flow thresholded", flow_thr)
+
+        cv2.moveWindow("Flow", 50, 50)
+        cv2.moveWindow("Flow thresholded", 650, 50)
+
+        # cv2.waitKey(0)
 
         video_writer.write(flow_image)
 
@@ -386,7 +421,7 @@ def denseOpticalFlow(video):
 def showImageAndMask(directory):
     import time
 
-    for dirName in os.listdir(directory):
+    for i, dirName in enumerate(os.listdir(directory)):
 
         patientDirectory = directory + dirName
         frames = []
@@ -415,9 +450,10 @@ def showImageAndMask(directory):
             vis = np.concatenate((image, multichannelMask), axis=1)
             vis = np.concatenate((vis, vis2), axis=0)
             frames.append(vis)
-            cv2.imshow("Combined", vis)
-
-            cv2.waitKey(1)
-            time.sleep(0.25)
+            # cv2.imshow("Combined", vis)
+            #
+            # cv2.waitKey(1)
+            # time.sleep(0.25)
         createVideo(frames, patientDirectory + "/" + dirName + "_withContours.avi")
-        cv2.waitKey(0)
+        print("created video: ", dirName, "  progress: ", i, " / ", len(os.listdir(directory)))
+        # cv2.waitKey(0)

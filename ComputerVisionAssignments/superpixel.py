@@ -3,6 +3,7 @@ from skimage.segmentation import mark_boundaries
 import matplotlib.pyplot as plt
 import cv2
 import ComputerVisionAssignments.filters as flt
+import numpy as np
 
 def showSuperpixelImages(image, numSegments, mask=None):
 
@@ -56,3 +57,37 @@ def showSuperpixelImages(image, numSegments, mask=None):
     cv2.moveWindow("Superpixels median", 600, 460)
 
     cv2.waitKey(0)
+
+
+def getSuperpixelCentroids(image, numSegments, debug=False):
+
+    segments = slic(image, n_segments=numSegments, sigma=5)
+
+    result = []
+    for (i, segVal) in enumerate(np.unique(segments)):
+        # multichannel mask
+        mc_mask = np.zeros(image.shape[:3], dtype="uint8")
+        mask = np.zeros(image.shape[:2], dtype="uint8")
+
+        mask[segments == segVal] = 255
+        mc_mask[segments == segVal] = 255
+
+        img, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        # get moments
+        moments = [cv2.moments(contour) for contour in contours]
+
+        # you can calculate centroids this way  https://docs.opencv.org/3.1.0/dd/d49/tutorial_py_contour_features.html
+        centroids = [ ( int(M['m10'] / M['m00']), int(M['m01'] / M['m00']) ) for M in moments]
+
+        if debug:
+            cv2.circle(mc_mask, centroids[0], 5, (0, 0, 255))
+            # for i, centroid in enumerate(centroids):
+            #     cv2.circle(mc_mask, centroids[0], 5, (0, 0, 255))
+
+            cv2.imshow("Binary segment", mc_mask)
+            cv2.imshow("Multichannel segment", cv2.bitwise_and(image, image, mask=mask))
+            cv2.waitKey(0)
+
+        result.append(centroids[0])
+    return result
