@@ -59,7 +59,21 @@ def showSuperpixelImages(image, numSegments, mask=None):
     cv2.waitKey(0)
 
 
-def getSuperpixelCentroids(image, numSegments, debug=False):
+def switch(filtermode, image):
+    import ComputerVisionAssignments.filters as f
+    imagecopy = image.copy()
+    return {
+        'gauss': f.gauss_filter(imagecopy),
+        # 'wiener': f.wiener_filter_skimage(imagecopy),
+        'bilateral': f.bilateral_filter(imagecopy),
+        'median': f.median_filter(imagecopy),
+        None: image
+    }[filtermode]
+
+
+def getSuperpixelCentroids(image, numSegments, debug=False, filter=None):
+
+    image = switch(filter, image)
 
     segments = slic(image, n_segments=numSegments, sigma=5)
 
@@ -80,14 +94,21 @@ def getSuperpixelCentroids(image, numSegments, debug=False):
         # you can calculate centroids this way  https://docs.opencv.org/3.1.0/dd/d49/tutorial_py_contour_features.html
         centroids = [ ( int(M['m10'] / M['m00']), int(M['m01'] / M['m00']) ) for M in moments]
 
-        if debug:
-            cv2.circle(mc_mask, centroids[0], 5, (0, 0, 255))
-            # for i, centroid in enumerate(centroids):
-            #     cv2.circle(mc_mask, centroids[0], 5, (0, 0, 255))
-
-            cv2.imshow("Binary segment", mc_mask)
-            cv2.imshow("Multichannel segment", cv2.bitwise_and(image, image, mask=mask))
-            cv2.waitKey(0)
+        # if debug:
+        #     cv2.circle(mc_mask, centroids[0], 5, (0, 0, 255))
+        #     # for i, centroid in enumerate(centroids):
+        #     #     cv2.circle(mc_mask, centroids[0], 5, (0, 0, 255))
+        #
+        #     cv2.imshow("Binary segment", mc_mask)
+        #     cv2.imshow("Multichannel segment", cv2.bitwise_and(image, image, mask=mask))
+        #     cv2.waitKey(0)
 
         result.append(centroids[0])
+    if debug:
+        img = image.copy()
+        img = mark_boundaries(img, segments)
+        for centroid in result:
+            cv2.circle(img, centroid, 4, (0, 255, 255))
+        cv2.imshow("Superpixels with centroids", img)
+        cv2.waitKey(0)
     return result

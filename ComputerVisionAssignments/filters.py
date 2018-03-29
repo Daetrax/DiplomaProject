@@ -7,21 +7,22 @@ import numpy as np
 import scipy.signal as sig
 
 def wiener_filter_scipy(image):
-    return sig.wiener(image).copy()
+    image = image.astype('float64')
+    return sig.wiener(image)
 
 def wiener_filter_skimage(image):
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     psf = np.ones((5, 5)) / 25
-    return resto.unsupervised_wiener(image, psf).copy()
+    return resto.unsupervised_wiener(image, psf)
 
 def median_filter(image, ksize = 5):
-    return cv2.medianBlur(image, ksize=ksize).copy()
+    return cv2.medianBlur(image, ksize=ksize)
 
 def gauss_filter(image, ksize = (5, 5), sigmaX = 0):
-    return cv2.GaussianBlur(image, ksize=ksize, sigmaX=sigmaX).copy()
+    return cv2.GaussianBlur(image, ksize=ksize, sigmaX=sigmaX)
 
 def bilateral_filter(image, d = 5, sigmaColor = 75, sigmaSpace = 75):
-    return cv2.bilateralFilter(image, d=d, sigmaColor=sigmaColor, sigmaSpace=sigmaSpace).copy()
+    return cv2.bilateralFilter(image, d=d, sigmaColor=sigmaColor, sigmaSpace=sigmaSpace)
 
 def lee_filter(img, size):
     img_mean = uniform_filter(img, (size, size))

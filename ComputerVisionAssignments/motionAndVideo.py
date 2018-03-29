@@ -184,7 +184,7 @@ def lucasKanadeOpticalFlowCompare(video, filter=None):
     cap.release()
 
 
-def lucasKanadeOpticalFlow(video, filter=None, points_to_track=None, delay=1.325):
+def lucasKanadeOpticalFlow(video, filter=None, points_to_track=None, delay=0.325):
     global old_filtered
     import numpy as np
     import cv2, time
@@ -209,12 +209,7 @@ def lucasKanadeOpticalFlow(video, filter=None, points_to_track=None, delay=1.325
         p0 = np.asarray(points_to_track, dtype=np.float32)
     else:
         p0 = cv2.goodFeaturesToTrack(old_gray, mask=None, **feature_params)
-    sift = cv2.xfeatures2d.SIFT_create()
-    sift_points = sift.detect(old_gray, None)
-    temp = []
-    temp = [ (kp.pt[0], kp.pt[1]) for kp in sift_points ]
-    temp = np.asarray(temp, dtype=np.float32)
-    p0 = temp
+
 
     # Create a mask image for drawing purposes
     mask = np.zeros_like(old_frame)
@@ -232,7 +227,7 @@ def lucasKanadeOpticalFlow(video, filter=None, points_to_track=None, delay=1.325
 
         cv2.imshow("base", diff_img)
         p0 = good_new.reshape(-1, 1, 2)
-        cv2.waitKey(1)
+        cv2.waitKey(0)
         time.sleep(delay)
     cv2.destroyAllWindows()
     cap.release()
@@ -378,7 +373,7 @@ def drawFlow(img, flow, step=16):
 
 
 
-def denseOpticalFlow(video):
+def denseOpticalFlow(video, threshold=0):
     import cv2 as cv
     import numpy as np
     import time
@@ -398,7 +393,7 @@ def denseOpticalFlow(video):
 
         counter += 1
 
-        flow_thr, flow_image = draw_flow(img=frame2, flow=flow, threshold=30)
+        flow_thr, flow_image = draw_flow(img=frame2, flow=flow, threshold=threshold)
         cv2.imshow("Flow", flow_image)
         cv2.imshow("Flow thresholded", flow_thr)
 

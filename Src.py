@@ -39,20 +39,30 @@ def createVideosFromImages(destination):
         motion.createVideoFromListWithMask(sequence, videopath)
         print("Video ", patientDirectory, " done.", "  progress: ", i, " / ", len(os.listdir(destination)))
 
-video = "D:/DP/Data/Preprocess/motion/1/1_sequence.avi"
+video = "C:/DP/Data/Preprocess/motion/1/1_sequence.avi"
 # motion.lucasKanadeOpticalFlow(video=video)
 
 import ComputerVisionAssignments.superpixel as sp
 
+import ComputerVisionAssignments.clustering as cl
+import ComputerVisionAssignments.DetectorsAndDescriptors as dtct
+
 cap = cv2.VideoCapture(video)
 ret, frame = cap.read()
-centroids = sp.getSuperpixelCentroids(frame, 100)
+centroids = sp.getSuperpixelCentroids(frame, 100, debug=False, filter="gauss")
 cap.release()
 
-createVideosFromImages("D:/DP/Data/Preprocess/motion/")
+filtered_img = sp.switch(image=frame, filtermode="gauss")
+sift_points = dtct.siftPoints(filtered_img)
+keyps = cv2.drawKeypoints(filtered_img, sift_points, filtered_img, color=(0, 255, 255))
+cv2.imshow("Keyps", filtered_img)
+cv2.waitKey(0)
+cl.dbscan(sift_points, frame)
+
+# createVideosFromImages("D:/DP/Data/Preprocess/motion/")
 
 motion.lucasKanadeOpticalFlow(video=video, points_to_track=centroids, filter="gauss")
-motion.denseOpticalFlow(video)
+# motion.denseOpticalFlow(video, threshold=25)
 sp.showSuperpixelImages(cv2.imread("D:/DP/Data/Preprocess/motion/1/1_1.tif"), 150, mask=cv2.imread("D:/DP/Data/Preprocess/motion/1/1_1_mask.tif"))
 
 
