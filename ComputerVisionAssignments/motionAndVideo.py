@@ -55,6 +55,29 @@ def createVideoFromList(frames, videoname):
     cv2.destroyAllWindows()
     video.release()
 
+
+def createMaskVideo(frames, videoname):
+    """expecting a list of file names and video name"""
+    videoPath = videoname
+
+    tempImage = cv2.imread(frames[0])
+    height = tempImage.shape[0]
+    width = tempImage.shape[1]
+
+    print(width, height)
+    video = cv2.VideoWriter(filename=videoPath, fourcc=cv2.VideoWriter_fourcc(*"MJPG"), fps=7,
+                            frameSize=(width, height))
+
+    for framename in frames:
+        # frame = cv2.imread(framename)
+
+        multichannelMask = cv2.imread(framename.replace(".tif", "_mask.tif"))
+        # mask = cv2.imread(framename.replace(".tif", "_mask.tif"), cv2.IMREAD_GRAYSCALE)
+
+        video.write(multichannelMask)
+    cv2.destroyAllWindows()
+    video.release()
+
 def createVideoFromListWithMask(frames, videoname):
 
     videoPath = videoname

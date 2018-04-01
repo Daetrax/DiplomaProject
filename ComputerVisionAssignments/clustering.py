@@ -5,7 +5,7 @@ from sklearn import metrics
 from sklearn.datasets.samples_generator import make_blobs
 from sklearn.preprocessing import StandardScaler
 
-def dbscan(points, image):
+def dbscan(points, frame, mask):
 
     # #############################################################################
     # Generate sample data
@@ -20,8 +20,8 @@ def dbscan(points, image):
 
     # #############################################################################
     # Compute DBSCAN
-    eps = 0.2
-    min_samples = 8
+    eps = 0.15
+    min_samples = 10
     db = DBSCAN(eps=eps, min_samples=min_samples).fit(X)
     core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
     core_samples_mask[db.core_sample_indices_] = True
@@ -59,6 +59,10 @@ def dbscan(points, image):
     plt.title('Estimated number of clusters: %d' % n_clusters_)
     plt.show()
 
+    # #############################################################################
+    # Show clusters in image
+
+    image = frame.copy()
     keypoint_groups = [0] * (n_clusters_ + 1)
     # keypoint_groups[0] = "abc"
     # keypoint_groups[1] = "bc"
@@ -82,6 +86,14 @@ def dbscan(points, image):
         if not clust:
             continue
         cv2.drawKeypoints(image, clust, image, color=color)
+
+
+    cv2.imshow("mask", mask)
+    cv2.waitKey(0)
+    # mc_mask = mask.copy()
+    mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+    im, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    cv2.drawContours(image, contours, -1, (0, 0, 255), 2)
 
     cv2.imshow("Clusters", image)
     cv2.waitKey(0)
