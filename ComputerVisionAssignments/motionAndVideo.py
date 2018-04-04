@@ -423,7 +423,7 @@ def denseOpticalFlow(video, threshold=0):
         cv2.moveWindow("Flow", 50, 50)
         cv2.moveWindow("Flow thresholded", 650, 50)
 
-        # cv2.waitKey(0)
+        cv2.waitKey(0)
 
         video_writer.write(flow_image)
 

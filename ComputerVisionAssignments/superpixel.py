@@ -1,19 +1,27 @@
 from skimage.segmentation import slic
 from skimage.segmentation import mark_boundaries
 import matplotlib.pyplot as plt
-import cv2
+import cv2, os
 import ComputerVisionAssignments.filters as flt
 import numpy as np
+import scipy.io as sio
 
-def showSuperpixelImages(image, numSegments, mask=None):
+def showSuperpixelImages(image, numSegments, mask=None, framepath=None, segments_out_path='D:\\DP\\Data\\Superpixel_evaulation\\superpixel_segs\\'):
 
     image_gauss = flt.gauss_filter(image)
-    image_wiener = flt.wiener_filter_scipy(image)
+    image_wiener = flt.wiener_filter_skimage(image)
     image_bilateral = flt.bilateral_filter(image)
     image_median = flt.median_filter(image)
     print("Filtering done")
 
     segments = slic(image, n_segments=numSegments, sigma=5)
+    #
+    # base = os.path.basename(framepath)
+    # os.path.splitext(base)
+    # base = os.path.splitext(base)[0]
+    # save_path = segments_out_path + base
+    # sio.savemat(save_path, {'segs': segments})
+    # return
 
     segments_gauss = slic(image_gauss, n_segments=numSegments, sigma=5)
     print("Gauss segments done")
